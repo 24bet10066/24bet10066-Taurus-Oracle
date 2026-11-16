@@ -23,7 +23,7 @@ class JwtServiceTest {
                         Duration.ofDays(30),
                         "serviceos-auth-test"
                 ),
-                new AuthProperties.Otp(6, Duration.ofMinutes(10), 3, 5),
+                new AuthProperties.Otp(6, Duration.ofMinutes(10), 3, 5, true),
                 new AuthProperties.TwoFactor("https://2factor.in/API/V1", "")
         );
         jwtService = new JwtService(props);

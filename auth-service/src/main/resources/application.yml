@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: ${PORT:8081}
 
 spring:
   application:
@@ -57,6 +57,7 @@ serviceos:
     ttl: PT10M
     max-attempts: 3
     send-rate-limit-per-hour: 5
+    verification-required: ${OTP_VERIFICATION_REQUIRED:true}
   twofactor:
     base-url: https://2factor.in/API/V1
     api-key: ${TWOFACTOR_API_KEY:}

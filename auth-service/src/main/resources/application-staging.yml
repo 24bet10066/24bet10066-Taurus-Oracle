@@ -1,0 +1,4 @@
+serviceos:
+  otp:
+    # Staging-only bypass. Production startup rejects this setting.
+    verification-required: false

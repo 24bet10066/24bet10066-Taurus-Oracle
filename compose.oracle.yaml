@@ -1,0 +1,244 @@
+name: serviceos
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  init: true
+  env_file:
+    - ./.env
+  networks:
+    - serviceos
+  stop_grace_period: 30s
+  healthcheck:
+    test: ["CMD", "curl", "--fail", "--silent", "http://localhost:10000/actuator/health"]
+    interval: 30s
+    timeout: 5s
+    retries: 5
+    start_period: 60s
+
+services:
+  api-gateway:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+      cache_from:
+        - type=local,src=.docker-cache/api-gateway
+      cache_to:
+        - type=local,dest=.docker-cache/api-gateway,mode=max
+    ports:
+      - "127.0.0.1:${GATEWAY_BIND_PORT:-8080}:10000"
+    cpus: 0.35
+    mem_limit: 768m
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      PORT: "10000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      UPSTASH_REDIS_URL: ${UPSTASH_REDIS_URL:?UPSTASH_REDIS_URL is required}
+      AUTH_SERVICE_URL: http://auth-service:10000
+      JOB_SERVICE_URL: http://job-service:10000
+      PARTS_SERVICE_URL: http://parts-service:10000
+      CUSTOMER_SERVICE_URL: http://customer-service:10000
+      TECHNICIAN_SERVICE_URL: http://technician-service:10000
+      PAYMENT_SERVICE_URL: http://payment-service:10000
+      ANALYTICS_SERVICE_URL: http://analytics-service:10000
+
+  auth-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+      cache_from:
+        - type=local,src=.docker-cache/auth-service
+      cache_to:
+        - type=local,dest=.docker-cache/auth-service,mode=max
+    cpus: 0.20
+    mem_limit: 1024m
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      PORT: "10000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      NEON_DATABASE_URL: ${AUTH_DATABASE_URL:?AUTH_DATABASE_URL is required}
+      NEON_DATABASE_USER: ${AUTH_DATABASE_USER:?AUTH_DATABASE_USER is required}
+      NEON_DATABASE_PASSWORD: ${AUTH_DATABASE_PASSWORD:?AUTH_DATABASE_PASSWORD is required}
+      UPSTASH_REDIS_URL: ${UPSTASH_REDIS_URL:?UPSTASH_REDIS_URL is required}
+      CONFLUENT_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS:?CONFLUENT_BOOTSTRAP_SERVERS is required}
+      CONFLUENT_API_KEY: ${CONFLUENT_API_KEY:?CONFLUENT_API_KEY is required}
+      CONFLUENT_API_SECRET: ${CONFLUENT_API_SECRET:?CONFLUENT_API_SECRET is required}
+      TWOFACTOR_API_KEY: ${TWOFACTOR_API_KEY:?TWOFACTOR_API_KEY is required}
+
+  job-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: job-service/Dockerfile
+      cache_from:
+        - type=local,src=.docker-cache/job-service
+      cache_to:
+        - type=local,dest=.docker-cache/job-service,mode=max
+    cpus: 0.25
+    mem_limit: 1280m
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      PORT: "10000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      NEON_DATABASE_URL: ${JOB_DATABASE_URL:?JOB_DATABASE_URL is required}
+      NEON_DATABASE_USER: ${JOB_DATABASE_USER:?JOB_DATABASE_USER is required}
+      NEON_DATABASE_PASSWORD: ${JOB_DATABASE_PASSWORD:?JOB_DATABASE_PASSWORD is required}
+      CONFLUENT_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS:?CONFLUENT_BOOTSTRAP_SERVERS is required}
+      CONFLUENT_API_KEY: ${CONFLUENT_API_KEY:?CONFLUENT_API_KEY is required}
+      CONFLUENT_API_SECRET: ${CONFLUENT_API_SECRET:?CONFLUENT_API_SECRET is required}
+      TECHNICIAN_SERVICE_URL: http://technician-service:10000
+      PARTS_SERVICE_URL: http://parts-service:10000
+
+  parts-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: parts-service/Dockerfile
+      cache_from:
+        - type=local,src=.docker-cache/parts-service
+      cache_to:
+        - type=local,dest=.docker-cache/parts-service,mode=max
+    cpus: 0.25
+    mem_limit: 1024m
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      PORT: "10000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      NEON_DATABASE_URL: ${PARTS_DATABASE_URL:?PARTS_DATABASE_URL is required}
+      NEON_DATABASE_USER: ${PARTS_DATABASE_USER:?PARTS_DATABASE_USER is required}
+      NEON_DATABASE_PASSWORD: ${PARTS_DATABASE_PASSWORD:?PARTS_DATABASE_PASSWORD is required}
+      UPSTASH_REDIS_URL: ${UPSTASH_REDIS_URL:?UPSTASH_REDIS_URL is required}
+      CONFLUENT_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS:?CONFLUENT_BOOTSTRAP_SERVERS is required}
+      CONFLUENT_API_KEY: ${CONFLUENT_API_KEY:?CONFLUENT_API_KEY is required}
+      CONFLUENT_API_SECRET: ${CONFLUENT_API_SECRET:?CONFLUENT_API_SECRET is required}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:?CLOUDINARY_CLOUD_NAME is required}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:?CLOUDINARY_API_KEY is required}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:?CLOUDINARY_API_SECRET is required}
+
+  customer-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: customer-service/Dockerfile
+      cache_from:
+        - type=local,src=.docker-cache/customer-service
+      cache_to:
+        - type=local,dest=.docker-cache/customer-service,mode=max
+    cpus: 0.20
+    mem_limit: 768m
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      PORT: "10000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      NEON_DATABASE_URL: ${CUSTOMER_DATABASE_URL:?CUSTOMER_DATABASE_URL is required}
+      NEON_DATABASE_USER: ${CUSTOMER_DATABASE_USER:?CUSTOMER_DATABASE_USER is required}
+      NEON_DATABASE_PASSWORD: ${CUSTOMER_DATABASE_PASSWORD:?CUSTOMER_DATABASE_PASSWORD is required}
+      CONFLUENT_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS:?CONFLUENT_BOOTSTRAP_SERVERS is required}
+      CONFLUENT_API_KEY: ${CONFLUENT_API_KEY:?CONFLUENT_API_KEY is required}
+      CONFLUENT_API_SECRET: ${CONFLUENT_API_SECRET:?CONFLUENT_API_SECRET is required}
+
+  technician-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: technician-service/Dockerfile
+      cache_from:
+        - type=local,src=.docker-cache/technician-service
+      cache_to:
+        - type=local,dest=.docker-cache/technician-service,mode=max
+    cpus: 0.25
+    mem_limit: 1024m
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      PORT: "10000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      NEON_DATABASE_URL: ${TECHNICIAN_DATABASE_URL:?TECHNICIAN_DATABASE_URL is required}
+      NEON_DATABASE_USER: ${TECHNICIAN_DATABASE_USER:?TECHNICIAN_DATABASE_USER is required}
+      NEON_DATABASE_PASSWORD: ${TECHNICIAN_DATABASE_PASSWORD:?TECHNICIAN_DATABASE_PASSWORD is required}
+      CONFLUENT_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS:?CONFLUENT_BOOTSTRAP_SERVERS is required}
+      CONFLUENT_API_KEY: ${CONFLUENT_API_KEY:?CONFLUENT_API_KEY is required}
+      CONFLUENT_API_SECRET: ${CONFLUENT_API_SECRET:?CONFLUENT_API_SECRET is required}
+      PARTS_SERVICE_URL: http://parts-service:10000
+
+  notification-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+      cache_from:
+        - type=local,src=.docker-cache/notification-service
+      cache_to:
+        - type=local,dest=.docker-cache/notification-service,mode=max
+    cpus: 0.15
+    mem_limit: 768m
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      PORT: "10000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      CONFLUENT_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS:?CONFLUENT_BOOTSTRAP_SERVERS is required}
+      CONFLUENT_API_KEY: ${CONFLUENT_API_KEY:?CONFLUENT_API_KEY is required}
+      CONFLUENT_API_SECRET: ${CONFLUENT_API_SECRET:?CONFLUENT_API_SECRET is required}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:?WHATSAPP_TOKEN is required}
+      PHONE_NUMBER_ID: ${PHONE_NUMBER_ID:?PHONE_NUMBER_ID is required}
+      FAST2SMS_KEY: ${FAST2SMS_KEY:?FAST2SMS_KEY is required}
+      ADMIN_WHATSAPP: ${ADMIN_WHATSAPP:?ADMIN_WHATSAPP is required}
+      SHOP_PHONE: ${SHOP_PHONE:?SHOP_PHONE is required}
+      ADMIN_ALERT_PHONES: ${ADMIN_ALERT_PHONES:?ADMIN_ALERT_PHONES is required}
+
+  payment-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: payment-service/Dockerfile
+      cache_from:
+        - type=local,src=.docker-cache/payment-service
+      cache_to:
+        - type=local,dest=.docker-cache/payment-service,mode=max
+    cpus: 0.15
+    mem_limit: 768m
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      PORT: "10000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      NEON_DATABASE_URL: ${PAYMENT_DATABASE_URL:?PAYMENT_DATABASE_URL is required}
+      NEON_DATABASE_USER: ${PAYMENT_DATABASE_USER:?PAYMENT_DATABASE_USER is required}
+      NEON_DATABASE_PASSWORD: ${PAYMENT_DATABASE_PASSWORD:?PAYMENT_DATABASE_PASSWORD is required}
+      CONFLUENT_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS:?CONFLUENT_BOOTSTRAP_SERVERS is required}
+      CONFLUENT_API_KEY: ${CONFLUENT_API_KEY:?CONFLUENT_API_KEY is required}
+      CONFLUENT_API_SECRET: ${CONFLUENT_API_SECRET:?CONFLUENT_API_SECRET is required}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:?RAZORPAY_KEY_ID is required}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:?RAZORPAY_KEY_SECRET is required}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:?RAZORPAY_WEBHOOK_SECRET is required}
+      JOB_SERVICE_URL: http://job-service:10000
+
+  analytics-service:
+    <<: *service-defaults
+    build:
+      context: .
+      dockerfile: analytics-service/Dockerfile
+      cache_from:
+        - type=local,src=.docker-cache/analytics-service
+      cache_to:
+        - type=local,dest=.docker-cache/analytics-service,mode=max
+    cpus: 0.20
+    mem_limit: 768m
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      PORT: "10000"
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      NEON_DATABASE_URL: ${ANALYTICS_DATABASE_URL:?ANALYTICS_DATABASE_URL is required}
+      NEON_DATABASE_USER: ${ANALYTICS_DATABASE_USER:?ANALYTICS_DATABASE_USER is required}
+      NEON_DATABASE_PASSWORD: ${ANALYTICS_DATABASE_PASSWORD:?ANALYTICS_DATABASE_PASSWORD is required}
+      UPSTASH_REDIS_URL: ${UPSTASH_REDIS_URL:?UPSTASH_REDIS_URL is required}
+      CONFLUENT_BOOTSTRAP_SERVERS: ${CONFLUENT_BOOTSTRAP_SERVERS:?CONFLUENT_BOOTSTRAP_SERVERS is required}
+      CONFLUENT_API_KEY: ${CONFLUENT_API_KEY:?CONFLUENT_API_KEY is required}
+      CONFLUENT_API_SECRET: ${CONFLUENT_API_SECRET:?CONFLUENT_API_SECRET is required}
+      JOB_SERVICE_URL: http://job-service:10000
+      PARTS_SERVICE_URL: http://parts-service:10000
+      TECHNICIAN_SERVICE_URL: http://technician-service:10000
+
+networks:
+  serviceos:
+    driver: bridge

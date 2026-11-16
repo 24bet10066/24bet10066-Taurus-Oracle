@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: ${NEON_DATABASE_URL}
-    username:
-    password:
+    username: ${NEON_DATABASE_USER:}
+    password: ${NEON_DATABASE_PASSWORD:}
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
@@ -26,9 +26,7 @@ spring:
       sasl.mechanism: PLAIN
       sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username='${CONFLUENT_API_KEY}' password='${CONFLUENT_API_SECRET}';"
 
-# CLOUDINARY_URL env var is read directly by the Cloudinary SDK auto-configuration.
-# Set CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name in Railway dashboard.
-# The serviceos.cloudinary.* properties below are derived from it at startup.
+# Cloudinary credentials are supplied directly through the properties below.
 serviceos:
   cloudinary:
     cloud-name: ${CLOUDINARY_CLOUD_NAME:}

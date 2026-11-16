@@ -12,7 +12,8 @@ public record AuthProperties(
 ) {
     public record Jwt(String secret, Duration accessTokenTtl, Duration refreshTokenTtl, String issuer) {}
 
-    public record Otp(int length, Duration ttl, int maxAttempts, int sendRateLimitPerHour) {}
+    public record Otp(int length, Duration ttl, int maxAttempts, int sendRateLimitPerHour,
+                      boolean verificationRequired) {}
 
     public record TwoFactor(String baseUrl, String apiKey) {}
 }

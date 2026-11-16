@@ -3,6 +3,7 @@ package com.serviceos.notification.channel;
 import com.serviceos.notification.service.SmsCooldownService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -18,11 +19,23 @@ public class NotificationDispatcher {
     private final SmsChannel sms;
     private final SmsCooldownService cooldown;
 
+    @Autowired
     public NotificationDispatcher(WhatsAppChannel whatsApp, SmsChannel sms,
                                    SmsCooldownService cooldown) {
         this.whatsApp = whatsApp;
         this.sms = sms;
         this.cooldown = cooldown;
+    }
+
+    /** Compatibility constructor for callers that do not need Redis-backed SMS deduplication. */
+    public NotificationDispatcher(WhatsAppChannel whatsApp, SmsChannel sms) {
+        this.whatsApp = whatsApp;
+        this.sms = sms;
+        this.cooldown = null;
+    }
+
+    public SendResult dispatch(String phone, String message) {
+        return dispatch(phone, message, "GENERAL", true);
     }
 
     /**
@@ -40,11 +53,11 @@ public class NotificationDispatcher {
         log.info("WA failed — falling back to SMS for phone={} type={}", phone, messageType);
 
         // 2. SMS — apply cooldown check
-        if (!cooldown.shouldSend(phone, messageType, emergency)) {
+        if (cooldown != null && !cooldown.shouldSend(phone, messageType, emergency)) {
             return SendResult.suppressed("sms_cooldown");
         }
         if (sms.send(phone, message)) {
-            cooldown.recordSent(phone, messageType);
+            if (cooldown != null) cooldown.recordSent(phone, messageType);
             return SendResult.ok("sms");
         }
         log.warn("All channels failed for phone={}", phone);
@@ -57,11 +70,16 @@ public class NotificationDispatcher {
      */
     public void dispatchBoth(String phone, String message, String messageType, boolean emergency) {
         boolean waSent = whatsApp.send(phone, message);
-        if (!waSent && cooldown.shouldSend(phone, messageType, emergency)) {
+        if (!waSent && (cooldown == null || cooldown.shouldSend(phone, messageType, emergency))) {
             boolean smsSent = sms.send(phone, message);
-            if (smsSent) cooldown.recordSent(phone, messageType);
+            if (smsSent && cooldown != null) cooldown.recordSent(phone, messageType);
             if (!smsSent) log.warn("Both channels failed for phone={}", phone);
         }
+    }
+
+    public void dispatchBoth(String phone, String message) {
+        whatsApp.send(phone, message);
+        sms.send(phone, message);
     }
 
     /** Legacy convenience — no cooldown context (used by admin-only paths). */

@@ -1,0 +1,264 @@
+services:
+  - type: web
+    name: api-gateway
+    runtime: docker
+    dockerfilePath: ./api-gateway/Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /actuator/health
+    envVars:
+      - fromGroup: serviceos-production
+      - key: JWT_SECRET
+        sync: false
+      - key: UPSTASH_REDIS_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: AUTH_SERVICE_URL
+        value: http://auth-service:10000
+      - key: JOB_SERVICE_URL
+        value: http://job-service:10000
+      - key: PARTS_SERVICE_URL
+        value: http://parts-service:10000
+      - key: CUSTOMER_SERVICE_URL
+        value: http://customer-service:10000
+      - key: TECHNICIAN_SERVICE_URL
+        value: http://technician-service:10000
+      - key: PAYMENT_SERVICE_URL
+        value: http://payment-service:10000
+      - key: ANALYTICS_SERVICE_URL
+        value: http://analytics-service:10000
+
+  - type: pserv
+    name: auth-service
+    runtime: docker
+    dockerfilePath: ./auth-service/Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - fromGroup: serviceos-production
+      - key: JWT_SECRET
+        sync: false
+      - key: NEON_DATABASE_URL
+        sync: false
+      - key: NEON_DATABASE_USER
+        sync: false
+      - key: NEON_DATABASE_PASSWORD
+        sync: false
+      - key: UPSTASH_REDIS_URL
+        sync: false
+      - key: CONFLUENT_BOOTSTRAP_SERVERS
+        sync: false
+      - key: CONFLUENT_API_KEY
+        sync: false
+      - key: CONFLUENT_API_SECRET
+        sync: false
+      - key: TWOFACTOR_API_KEY
+        sync: false
+      - key: OTP_VERIFICATION_REQUIRED
+        value: "true"
+
+  - type: pserv
+    name: job-service
+    runtime: docker
+    dockerfilePath: ./job-service/Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - fromGroup: serviceos-production
+      - key: JWT_SECRET
+        sync: false
+      - key: NEON_DATABASE_URL
+        sync: false
+      - key: NEON_DATABASE_USER
+        sync: false
+      - key: NEON_DATABASE_PASSWORD
+        sync: false
+      - key: CONFLUENT_BOOTSTRAP_SERVERS
+        sync: false
+      - key: CONFLUENT_API_KEY
+        sync: false
+      - key: CONFLUENT_API_SECRET
+        sync: false
+      - key: TECHNICIAN_SERVICE_URL
+        value: http://technician-service:10000
+      - key: PARTS_SERVICE_URL
+        value: http://parts-service:10000
+
+  - type: pserv
+    name: parts-service
+    runtime: docker
+    dockerfilePath: ./parts-service/Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - fromGroup: serviceos-production
+      - key: JWT_SECRET
+        sync: false
+      - key: NEON_DATABASE_URL
+        sync: false
+      - key: NEON_DATABASE_USER
+        sync: false
+      - key: NEON_DATABASE_PASSWORD
+        sync: false
+      - key: UPSTASH_REDIS_URL
+        sync: false
+      - key: CONFLUENT_BOOTSTRAP_SERVERS
+        sync: false
+      - key: CONFLUENT_API_KEY
+        sync: false
+      - key: CONFLUENT_API_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+  - type: pserv
+    name: customer-service
+    runtime: docker
+    dockerfilePath: ./customer-service/Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - fromGroup: serviceos-production
+      - key: JWT_SECRET
+        sync: false
+      - key: NEON_DATABASE_URL
+        sync: false
+      - key: NEON_DATABASE_USER
+        sync: false
+      - key: NEON_DATABASE_PASSWORD
+        sync: false
+      - key: CONFLUENT_BOOTSTRAP_SERVERS
+        sync: false
+      - key: CONFLUENT_API_KEY
+        sync: false
+      - key: CONFLUENT_API_SECRET
+        sync: false
+
+  - type: pserv
+    name: technician-service
+    runtime: docker
+    dockerfilePath: ./technician-service/Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - fromGroup: serviceos-production
+      - key: JWT_SECRET
+        sync: false
+      - key: NEON_DATABASE_URL
+        sync: false
+      - key: NEON_DATABASE_USER
+        sync: false
+      - key: NEON_DATABASE_PASSWORD
+        sync: false
+      - key: CONFLUENT_BOOTSTRAP_SERVERS
+        sync: false
+      - key: CONFLUENT_API_KEY
+        sync: false
+      - key: CONFLUENT_API_SECRET
+        sync: false
+      - key: PARTS_SERVICE_URL
+        value: http://parts-service:10000
+
+  - type: pserv
+    name: notification-service
+    runtime: docker
+    dockerfilePath: ./notification-service/Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - fromGroup: serviceos-production
+      - key: JWT_SECRET
+        sync: false
+      - key: CONFLUENT_BOOTSTRAP_SERVERS
+        sync: false
+      - key: CONFLUENT_API_KEY
+        sync: false
+      - key: CONFLUENT_API_SECRET
+        sync: false
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: PHONE_NUMBER_ID
+        sync: false
+      - key: FAST2SMS_KEY
+        sync: false
+      - key: ADMIN_WHATSAPP
+        sync: false
+      - key: SHOP_PHONE
+        sync: false
+      - key: ADMIN_ALERT_PHONES
+        sync: false
+
+  - type: pserv
+    name: payment-service
+    runtime: docker
+    dockerfilePath: ./payment-service/Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - fromGroup: serviceos-production
+      - key: JWT_SECRET
+        sync: false
+      - key: NEON_DATABASE_URL
+        sync: false
+      - key: NEON_DATABASE_USER
+        sync: false
+      - key: NEON_DATABASE_PASSWORD
+        sync: false
+      - key: CONFLUENT_BOOTSTRAP_SERVERS
+        sync: false
+      - key: CONFLUENT_API_KEY
+        sync: false
+      - key: CONFLUENT_API_SECRET
+        sync: false
+      - key: JOB_SERVICE_URL
+        value: http://job-service:10000
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+
+  - type: pserv
+    name: analytics-service
+    runtime: docker
+    dockerfilePath: ./analytics-service/Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - fromGroup: serviceos-production
+      - key: JWT_SECRET
+        sync: false
+      - key: NEON_DATABASE_URL
+        sync: false
+      - key: NEON_DATABASE_USER
+        sync: false
+      - key: NEON_DATABASE_PASSWORD
+        sync: false
+      - key: UPSTASH_REDIS_URL
+        sync: false
+      - key: CONFLUENT_BOOTSTRAP_SERVERS
+        sync: false
+      - key: CONFLUENT_API_KEY
+        sync: false
+      - key: CONFLUENT_API_SECRET
+        sync: false
+      - key: JOB_SERVICE_URL
+        value: http://job-service:10000
+      - key: PARTS_SERVICE_URL
+        value: http://parts-service:10000
+      - key: TECHNICIAN_SERVICE_URL
+        value: http://technician-service:10000
+
+envVarGroups:
+  - name: serviceos-production
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: PORT
+        value: "10000"

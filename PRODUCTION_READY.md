@@ -38,6 +38,7 @@ Consolidated summary across all sessions. **What's done. What to do tonight. Wha
 - [x] **Collect Payment modal** — cash/online + collected-by-tech + notes → fires WA receipt.
 - [x] **Bottom nav on mobile** (Home / Customers / Pipeline / Techs / Parts), sidebar on desktop.
 - [x] **Pending payments tile** with one-tap deep-link to the unpaid job.
+- [x] **Parts counter sale form** — technician, part search, quantity, cash/approved credit, and transactional sale recording.
 
 ### Frontend (technician — what Rajan ji sees)
 - [x] **Light high-contrast PWA** — outdoor readable.
@@ -56,7 +57,7 @@ Consolidated summary across all sessions. **What's done. What to do tonight. Wha
 
 ---
 
-## 1 · Deploy steps (45 minutes total)
+## 1 · Deploy steps (Oracle Cloud + Cloudflare)
 
 ### Step 1 — Backend rebuild (5 min)
 ```bash
@@ -72,24 +73,21 @@ mvn install -pl payment-service,notification-service,job-service,customer-servic
 mvn clean install -q
 ```
 
-### Step 2 — Backend deploy (15 min)
+### Step 2 — Backend deploy (Oracle Cloud)
 
-**Easiest** — single Hetzner CX22 (€4.50 / ~₹400 per month):
+Follow [`deploy/oracle/README.md`](deploy/oracle/README.md). Copy the Oracle
+environment template to a root `.env`, fill the existing external PostgreSQL,
+Redis, Kafka, JWT, payment, notification, Cloudinary, and OTP settings, then
+validate and start:
+
 ```bash
-# On the server, after SSH + Docker installed
-git clone <your-git-url> taurus
-cd taurus
-docker compose up -d           # postgres + redis + kafka
-mvn install -pl shared-lib -q
-./start-serviceos.sh            # all 7 spring boot services
-./health-check.sh               # all should show UP
+docker compose -f compose.oracle.yaml config
+docker compose -f compose.oracle.yaml build --pull
+docker compose -f compose.oracle.yaml up -d
 ```
 
-Point a subdomain (`api.wrenchy.in`) to the server, configure NGINX or Caddy with TLS:
-```
-# Caddy is one-command auto-TLS
-caddy reverse-proxy --from api.wrenchy.in --to localhost:8080
-```
+Only the gateway is bound to localhost. Do not run `scripts/init-databases.sql`
+against production. Flyway runs versioned migrations with `ddl-auto=validate`.
 
 ### Step 3 — Frontend deploy (10 min)
 
@@ -106,12 +104,7 @@ npm install
 npm run build       # produces dist/
 ```
 
-Deploy `dist/` to **Vercel** (`vercel.json` already configured):
-```bash
-npx vercel --prod
-```
-
-Or any static host (Netlify, Cloudflare Pages, S3+CloudFront — all work the same way).
+The frontend remains on the existing Cloudflare deployment. Update its existing build environment with the future HTTPS gateway/tunnel URL; do not change the public frontend domain or Cloudflare routing.
 
 ### Step 4 — Smoke test (15 min)
 
