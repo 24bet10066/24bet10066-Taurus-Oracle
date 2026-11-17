@@ -31,7 +31,7 @@ jobs:
             job-service:       ['job-service/**', 'pom.xml']
             parts-service:     ['parts-service/**', 'pom.xml']
             customer-service:  ['customer-service/**', 'pom.xml']
-            technician-service:['technician-service/**', 'pom.xml']
+            technician-service: ['technician-service/**', 'pom.xml']
             notification-service: ['notification-service/**', 'pom.xml']
             payment-service:   ['payment-service/**', 'pom.xml']
             analytics-service: ['analytics-service/**', 'pom.xml']
