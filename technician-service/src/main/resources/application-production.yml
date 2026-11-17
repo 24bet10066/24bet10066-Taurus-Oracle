@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: ${NEON_DATABASE_URL}
-    username:
-    password:
+    username: ${NEON_DATABASE_USER:}
+    password: ${NEON_DATABASE_PASSWORD:}
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1

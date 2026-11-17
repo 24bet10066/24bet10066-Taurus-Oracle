@@ -31,7 +31,7 @@ class RateLimitServiceTest {
 
         AuthProperties props = new AuthProperties(
                 new AuthProperties.Jwt("x", Duration.ofDays(7), Duration.ofDays(30), "iss"),
-                new AuthProperties.Otp(6, Duration.ofMinutes(10), 3, 5),
+                new AuthProperties.Otp(6, Duration.ofMinutes(10), 3, 5, true),
                 new AuthProperties.TwoFactor("https://2factor.in/API/V1", "")
         );
         service = new RateLimitService(redis, props);

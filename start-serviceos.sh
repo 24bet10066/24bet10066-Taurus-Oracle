@@ -6,7 +6,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$HOME/Documents/Taurus"
-JWT="sk-electronics-banda-super-secret-jwt-key-2024-secure"
+JWT="${JWT_SECRET:?Set JWT_SECRET before starting local services}"
 DB_USER="postgres"
 DB_PASS="postgres"
 DB_HOST="localhost:5432"

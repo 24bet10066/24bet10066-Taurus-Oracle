@@ -14,6 +14,8 @@ import com.serviceos.shared.enums.Role;
 import com.serviceos.shared.result.AuthResult;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -21,6 +23,8 @@ import java.util.UUID;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepo;
     private final RefreshTokenRepository refreshRepo;
@@ -60,7 +64,12 @@ public class AuthService {
 
     @Transactional
     public AuthResult verifyOtp(OtpVerifyRequest req) {
-        OtpService.VerifyResult outcome = otpService.verify(req.phone(), req.purpose(), req.otp());
+        OtpService.VerifyResult outcome = props.otp().verificationRequired()
+                ? otpService.verify(req.phone(), req.purpose(), req.otp())
+                : OtpService.VerifyResult.OK;
+        if (!props.otp().verificationRequired()) {
+            log.warn("Temporary OTP verification bypass is enabled; restore OTP_VERIFICATION_REQUIRED=true before production launch");
+        }
         AuthResult.Failure failure = switch (outcome) {
             case OK                 -> null;
             case MISMATCH           -> new AuthResult.Failure("INVALID_OTP", "OTP does not match");

@@ -205,7 +205,7 @@ Repository documentation lists Kafka event names such as `job.created`, `job.sta
 
 The current `docker-compose.yml` is explicitly marked for **local development only**. It starts PostgreSQL 16, Redis 7, Kafka 3.7, and Kafka UI; it does not itself start all nine Spring Boot applications. `scripts/init-databases.sql` currently creates separate databases for the services listed there. The `.env.example` contains per-service `*_DB_URL` values and references Confluent Cloud for production Kafka.
 
-Do not describe production as “one database with schema-per-service,” “all services self-hosted on Azure,” or any other provider topology until the active production configuration has been checked. The current repository documentation has conflicting/older deployment descriptions; this must be reconciled before publishing a definitive production architecture.
+Production deployment for Oracle Cloud is defined by [`compose.oracle.yaml`](compose.oracle.yaml): Docker Compose runs all nine applications on a private network and binds only the API gateway to localhost. The existing external PostgreSQL, Redis, and Kafka providers remain external dependencies; Oracle deployment does not create, reset, or migrate them destructively. See [`deploy/oracle/README.md`](deploy/oracle/README.md) for the runbook.
 
 ## 8. Algorithms, forecasting and MLOps
 
@@ -258,7 +258,7 @@ Other workflow items below come from a roadmap snapshot dated **17 May 2026**. T
 ### Highest-priority operational gaps identified in that snapshot — re-check first
 
 1. **Completion evidence:** require repair proof/required photo, parts used, and the amount collected before a hired technician closes a job.
-2. **Walk-in parts-counter UI:** let staff choose a freelance technician, search parts, select quantity, record cash/approved credit, and issue a receipt. The snapshot said the API existed but there was no UI.
+2. **Walk-in parts-counter controls:** the admin Parts tab now provides technician selection, part search, quantity, cash/approved-credit selection, and a saved sale action. Sale history, receipt sharing, and settlement reconciliation still require end-to-end verification.
 3. **Hired-technician settlement:** reconcile cash recorded as collected by each technician against deposits actually made to the shop.
 4. **Inventory and job auditability:** make stock movements, job status history, reassignment, completion evidence, and payment changes traceable.
 
@@ -306,6 +306,21 @@ To run one Spring Boot module during development:
 Use the equivalent module command for the application you're working on. Follow the actual service configuration and startup scripts in the repository when running the full stack.
 
 ## 11. Production-readiness checklist
+
+### Oracle Cloud deployment
+
+1. Follow [`deploy/oracle/README.md`](deploy/oracle/README.md) and copy
+   [`deploy/oracle/.env.example`](deploy/oracle/.env.example) to the repository
+   root as `.env`.
+2. Set the existing PostgreSQL URL, user, and password separately for each
+   database-backed service, with `sslmode=require`; do not run
+   `scripts/init-databases.sql` against production.
+3. Set `FRONTEND_URL` to the existing Cloudflare frontend origin. Keep the
+   public frontend domain and Cloudflare configuration unchanged.
+4. Confirm all nine containers are healthy and that only the gateway is bound
+   to localhost.
+5. Production always requires OTP verification. The staging-only bypass must
+   not be selected for Oracle deployment.
 
 Before relying on the application for daily shop operations, verify all of the following with test transactions:
 

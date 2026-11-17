@@ -1,5 +1,5 @@
 server:
-  port: 8086
+  port: ${PORT:8086}
 
 spring:
   application:
@@ -36,7 +36,7 @@ serviceos:
     # Comma-separated list of admin phones that receive an SMS+WhatsApp on
     # every new booking. First number = owner; rest = staff who can act if
     # the owner is on a call. Override with env ADMIN_ALERT_PHONES in prod.
-    admin-alert-phones: ${ADMIN_ALERT_PHONES:8960245022,6306557517}
+    admin-alert-phones: ${ADMIN_ALERT_PHONES:}
   whatsapp:
     base-url: https://graph.facebook.com/v21.0
     phone-number-id: ${WA_PHONE_NUMBER_ID:}

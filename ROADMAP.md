@@ -23,7 +23,7 @@ Both flows feed shared inventory and reports, but repair income, parts-sale marg
 
 - [ ] Run the current live deployment through the full smoke-test path and record the results/date.
 - [ ] Confirm the actual frontend host, backend host, database provider/topology, Redis provider, Kafka provider, and how secrets are configured.
-- [ ] Resolve conflicting documentation: current README says Azure/self-hosted/shared schema-per-service; local compose says it is local-only, initializes separate databases, and describes Neon/Upstash/Confluent Cloud for production; `.env.example` contains per-service database URLs and Confluent Cloud variables.
+- [ ] Resolve remaining documentation differences: Oracle deployment is defined by `compose.oracle.yaml` and `deploy/oracle/README.md`; the local infrastructure compose remains local-only, while PostgreSQL, Redis, and Kafka remain external in production.
 - [ ] Confirm whether Wrenchy is the public product name, ServiceOS the system name, and Taurus the repository name; use the same explanation everywhere.
 - [ ] Verify all integrations actually enabled in production (OTP provider, WhatsApp method, SMS fallback, payment provider, image storage). Remove old comments and env examples that don't match reality.
 - [ ] Verify the public repository contains no populated secrets, customer information, private phone lists, or internal operating notes. Decide whether the repository's proprietary/internal-use status matches the intended public visibility.

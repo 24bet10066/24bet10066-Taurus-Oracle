@@ -26,7 +26,7 @@ public class TwoFactorClient {
     public boolean sendOtp(String phone, String otp) {
         String apiKey = props.twofactor().apiKey();
         if (apiKey == null || apiKey.isBlank()) {
-            log.warn("[DEV] TWOFACTOR_API_KEY not set — OTP for {} is {}", phone, otp);
+            log.warn("TWOFACTOR_API_KEY is not set; OTP delivery is disabled");
             return true;
         }
         try {

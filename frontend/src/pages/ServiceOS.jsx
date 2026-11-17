@@ -1220,15 +1220,119 @@ function TechniciansView({ technicians = [], loading }) {
 }
 
 // ─── PARTS VIEW ────────────────────────────────────────────────────────────
-function PartsView() {
+function PartsView({ technicians = [] }) {
   const { data: lowStock = [], isLoading } = useQuery({
     queryKey: ['parts-low-stock'],
     queryFn: () => partsApi.lowStock().then(r => r.data?.data || []),
     staleTime: 60_000,
   });
+  const [technicianId, setTechnicianId] = useState('');
+  const [partQuery, setPartQuery] = useState('');
+  const [selectedPart, setSelectedPart] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const saleMut = useMutation({
+    mutationFn: () => partsApi.sell({
+      technicianId,
+      technicianName: technicians.find(t => t.id === technicianId)?.name,
+      paymentMethod,
+      items: [{ partId: selectedPart.partId, quantity: Number(quantity) }],
+    }),
+    onSuccess: () => {
+      toast.success('Counter sale recorded');
+      setTechnicianId('');
+      setPartQuery('');
+      setSelectedPart(null);
+      setQuantity(1);
+    },
+    onError: err => toast.error(err.response?.data?.message || 'Could not record sale'),
+  });
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ['parts-search', partQuery],
+    queryFn: () => partsApi.search(partQuery).then(r => r.data?.data || []),
+    enabled: partQuery.trim().length >= 2,
+    staleTime: 15_000,
+  });
 
   return (
     <div className="flex-1 overflow-y-auto scrollbar-hide p-5 lg:p-8 pb-28 lg:pb-8 max-w-3xl mx-auto w-full">
+      <section className="bg-paper border border-line rounded-2xl p-4 shadow-card mb-6">
+        <div className="mb-4">
+          <h2 className="text-xl font-display font-bold text-ink">Counter sale</h2>
+          <p className="hi text-sm text-ink-3 mt-0.5">फ्रीलांस तकनीशियन को पुर्जा बेचें</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FieldSelect
+            label="Technician"
+            value={technicianId}
+            onChange={e => setTechnicianId(e.target.value)}
+            options={technicians
+              .filter(t => t.id && (t.approved || t.status === 'HIRED' || t.status === 'FREE'))
+              .map(t => ({ value: t.id, label: `${t.name} · ${fmtPhone(t.phone)}` }))}
+            placeholder="Select buyer"
+          />
+          <FieldSelect
+            label="Payment"
+            value={paymentMethod}
+            onChange={e => setPaymentMethod(e.target.value)}
+            options={[
+              { value: 'CASH', label: 'Cash' },
+              { value: 'CREDIT', label: 'Approved credit' },
+            ]}
+          />
+        </div>
+        <div className="mt-3 relative">
+          <FieldInput
+            label="Part"
+            value={selectedPart ? `${selectedPart.name} · ${selectedPart.sku}` : partQuery}
+            onChange={e => { setSelectedPart(null); setPartQuery(e.target.value); }}
+            placeholder="Search by part name or SKU"
+          />
+          {!selectedPart && searchResults.length > 0 && (
+            <div className="absolute z-10 left-0 right-0 mt-1 bg-paper border border-line rounded-xl shadow-panel overflow-hidden">
+              {searchResults.map(part => (
+                <button
+                  type="button"
+                  key={part.partId}
+                  disabled={part.currentStock < 1}
+                  onClick={() => { setSelectedPart(part); setPartQuery(''); }}
+                  className="w-full text-left px-3 py-2.5 border-b border-line last:border-0 hover:bg-paper-2 disabled:opacity-50"
+                >
+                  <span className="block text-sm font-semibold text-ink">{part.name}</span>
+                  <span className="text-xs text-ink-3">{part.sku} · {part.currentStock} in stock · {inr(part.sellPrice)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {selectedPart && (
+          <div className="flex items-end gap-3 mt-3">
+            <FieldInput
+              label="Quantity"
+              type="number"
+              min="1"
+              max={selectedPart.currentStock}
+              value={quantity}
+              onChange={e => setQuantity(Math.max(1, Math.min(selectedPart.currentStock, e.target.value)))}
+              className="w-28"
+            />
+            <div className="flex-1 pb-1 text-sm text-ink-2">
+              Total <strong className="text-ink">{inr(Number(selectedPart.sellPrice || 0) * Number(quantity || 0))}</strong>
+            </div>
+            <Button
+              type="button"
+              disabled={!technicianId || saleMut.isPending}
+              loading={saleMut.isPending}
+              onClick={() => saleMut.mutate()}
+            >
+              Record sale
+            </Button>
+          </div>
+        )}
+        {!selectedPart && partQuery.trim().length >= 2 && searchResults.length === 0 && (
+          <p className="text-xs text-ink-3 mt-2">No matching parts found.</p>
+        )}
+      </section>
       <div className="flex items-baseline justify-between mb-4">
         <div>
           <h2 className="text-xl font-display font-bold text-ink">Low stock</h2>
@@ -1492,7 +1596,7 @@ export default function ServiceOS() {
             {activeTab === 'pipeline'    && <PipelineView    jobs={jobs} loading={jobsLoading} onJobClick={setSelectedJob} />}
             {activeTab === 'analytics'   && <AnalyticsView   dashboard={dashboard} />}
             {activeTab === 'technicians' && <TechniciansView technicians={technicians} loading={techLoading} />}
-            {activeTab === 'parts'       && <PartsView />}
+            {activeTab === 'parts'       && <PartsView technicians={technicians} />}
           </div>
 
           {selectedJob && (

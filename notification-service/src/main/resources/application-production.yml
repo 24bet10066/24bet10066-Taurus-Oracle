@@ -6,7 +6,7 @@ spring:
       sasl.mechanism: PLAIN
       sasl.jaas.config: "org.apache.kafka.common.security.plain.PlainLoginModule required username='${CONFLUENT_API_KEY}' password='${CONFLUENT_API_SECRET}';"
 
-# Remap user-facing Railway env var names → internal config properties
+# Map deployment environment variable names to internal config properties.
 serviceos:
   whatsapp:
     access-token: ${WHATSAPP_TOKEN}
@@ -17,7 +17,7 @@ serviceos:
   notification:
     admin-whatsapp: ${ADMIN_WHATSAPP}
     shop-phone: ${SHOP_PHONE}
-    admin-alert-phones: ${ADMIN_ALERT_PHONES:8960245022,6306557517}
+    admin-alert-phones: ${ADMIN_ALERT_PHONES}
 
 logging:
   level:

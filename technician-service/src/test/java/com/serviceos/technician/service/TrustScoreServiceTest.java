@@ -128,25 +128,46 @@ class TrustScoreServiceTest {
 
     @Test
     void highTrustScore_assignsHighCreditTier() {
+        technician.setCreditLimit(BigDecimal.valueOf(1000)); // Admin-enabled credit
         technician.setTotalPartsPurchased(new BigDecimal("50000"));
         technician.setTotalPartsPaid(new BigDecimal("50000"));
         technician.setPartsOrderCount(20);
         technician.setOnboardedAt(Instant.now().minus(730, ChronoUnit.DAYS)); // 2 years
 
-        trustScoreService.recompute(technician, false);
+        trustScoreService.recompute(technician, true);
 
         assertThat(technician.getTrustScore().doubleValue()).isGreaterThanOrEqualTo(0.80);
         assertThat(technician.getCreditLimit()).isEqualByComparingTo("5000");
+        verify(technicianRepository).save(technician);
+        verify(partsServiceClient).updateCreditLimit(technician.getId(), BigDecimal.valueOf(5000));
     }
 
     @Test
     void lowTrustScore_assignsFloorCreditTier() {
+        technician.setCreditLimit(BigDecimal.valueOf(1000)); // Admin-enabled credit
         // All zeros → score ~0.1 from tenure only
         technician.setOnboardedAt(Instant.now().minus(1, ChronoUnit.DAYS));
-        trustScoreService.recompute(technician, false);
+        trustScoreService.recompute(technician, true);
 
         assertThat(technician.getTrustScore().doubleValue()).isLessThan(0.40);
         assertThat(technician.getCreditLimit()).isEqualByComparingTo("500");
+        verify(technicianRepository).save(technician);
+        verify(partsServiceClient).updateCreditLimit(technician.getId(), BigDecimal.valueOf(500));
+    }
+
+    @Test
+    void zeroCreditLimit_remainsDisabledRegardlessOfTrustScore() {
+        technician.setTotalPartsPurchased(new BigDecimal("50000"));
+        technician.setTotalPartsPaid(new BigDecimal("50000"));
+        technician.setPartsOrderCount(20);
+        technician.setOnboardedAt(Instant.now().minus(730, ChronoUnit.DAYS));
+
+        trustScoreService.recompute(technician, true);
+
+        assertThat(technician.getTrustScore().doubleValue()).isGreaterThanOrEqualTo(0.80);
+        assertThat(technician.getCreditLimit()).isZero();
+        verify(technicianRepository).save(technician);
+        verify(partsServiceClient, never()).updateCreditLimit(any(), any());
     }
 
     @Test
