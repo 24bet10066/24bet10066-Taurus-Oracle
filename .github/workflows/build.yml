@@ -10,36 +10,16 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: 24bet10066
+
 jobs:
-  changes:
-    name: detect changed modules
-    runs-on: ubuntu-latest
-    outputs:
-      modules: ${{ steps.filter.outputs.changes }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            shared-lib:        ['shared-lib/**', 'pom.xml']
-            api-gateway:       ['api-gateway/**', 'pom.xml']
-            auth-service:      ['auth-service/**', 'pom.xml']
-            job-service:       ['job-service/**', 'pom.xml']
-            parts-service:     ['parts-service/**', 'pom.xml']
-            customer-service:  ['customer-service/**', 'pom.xml']
-            technician-service: ['technician-service/**', 'pom.xml']
-            notification-service: ['notification-service/**', 'pom.xml']
-            payment-service:   ['payment-service/**', 'pom.xml']
-            analytics-service: ['analytics-service/**', 'pom.xml']
-
-  build:
-    name: build & test
-    needs: changes
-    if: ${{ needs.changes.outputs.modules != '[]' }}
+  maven:
+    name: Maven tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,21 +31,8 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Compute -pl arg
-        id: pl
-        run: |
-          modules='${{ needs.changes.outputs.modules }}'
-          pl=$(echo "$modules" | jq -r '. | join(",")')
-          echo "value=$pl" >> "$GITHUB_OUTPUT"
-
-      - name: Maven build (changed modules + dependents)
-        run: |
-          if [ -n "${{ steps.pl.outputs.value }}" ]; then
-            mvn -B -pl "${{ steps.pl.outputs.value }}" -am --also-make-dependents \
-                clean verify
-          else
-            mvn -B clean verify
-          fi
+      - name: Maven verify
+        run: mvn -B clean verify
 
       - name: Upload test reports
         if: always()
@@ -77,42 +44,23 @@ jobs:
             **/target/failsafe-reports/
           if-no-files-found: ignore
 
-  deploy:
-    name: Oracle deployment handoff
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Oracle deployment
-        run: |
-          echo "Oracle deployment is performed manually with compose.oracle.yaml."
-          echo "See deploy/oracle/README.md; this workflow does not provision cloud resources."
-
-  oracle-arm64-images:
-    name: Build ${{ matrix.service }} (linux/arm64)
+  arm64-validation:
+    name: Validate ${{ matrix.service }} (linux/arm64)
+    needs: maven
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - service: api-gateway
-            dockerfile: api-gateway/Dockerfile
-          - service: auth-service
-            dockerfile: auth-service/Dockerfile
-          - service: job-service
-            dockerfile: job-service/Dockerfile
-          - service: parts-service
-            dockerfile: parts-service/Dockerfile
-          - service: customer-service
-            dockerfile: customer-service/Dockerfile
-          - service: technician-service
-            dockerfile: technician-service/Dockerfile
-          - service: notification-service
-            dockerfile: notification-service/Dockerfile
-          - service: payment-service
-            dockerfile: payment-service/Dockerfile
-          - service: analytics-service
-            dockerfile: analytics-service/Dockerfile
+        service:
+          - api-gateway
+          - auth-service
+          - job-service
+          - parts-service
+          - customer-service
+          - technician-service
+          - notification-service
+          - payment-service
+          - analytics-service
     steps:
       - uses: actions/checkout@v4
 
@@ -128,9 +76,61 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
+          file: ${{ matrix.service }}/Dockerfile
           platforms: linux/arm64
           push: false
-          tags: serviceos/${{ matrix.service }}:ci-arm64
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/taurus-${{ matrix.service }}:ci-arm64
+          cache-from: type=gha,scope=oracle-${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=oracle-${{ matrix.service }}
+
+  publish:
+    name: Publish ${{ matrix.service }} to GHCR
+    needs: [maven, arm64-validation]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - job-service
+          - parts-service
+          - customer-service
+          - technician-service
+          - notification-service
+          - payment-service
+          - analytics-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Publish ARM64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.service }}/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/taurus-${{ matrix.service }}:sha-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/taurus-${{ matrix.service }}:latest
           cache-from: type=gha,scope=oracle-${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=oracle-${{ matrix.service }}
