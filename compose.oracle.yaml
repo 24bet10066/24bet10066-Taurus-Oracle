@@ -18,13 +18,7 @@ x-service-defaults: &service-defaults
 services:
   api-gateway:
     <<: *service-defaults
-    build:
-      context: .
-      dockerfile: api-gateway/Dockerfile
-      cache_from:
-        - type=local,src=.docker-cache/api-gateway
-      cache_to:
-        - type=local,dest=.docker-cache/api-gateway,mode=max
+    image: ghcr.io/24bet10066/taurus-api-gateway:${IMAGE_TAG:-latest}
     ports:
       - "127.0.0.1:${GATEWAY_BIND_PORT:-8080}:10000"
     cpus: 0.35
@@ -45,13 +39,7 @@ services:
 
   auth-service:
     <<: *service-defaults
-    build:
-      context: .
-      dockerfile: auth-service/Dockerfile
-      cache_from:
-        - type=local,src=.docker-cache/auth-service
-      cache_to:
-        - type=local,dest=.docker-cache/auth-service,mode=max
+    image: ghcr.io/24bet10066/taurus-auth-service:${IMAGE_TAG:-latest}
     cpus: 0.20
     mem_limit: 1024m
     environment:
@@ -69,13 +57,7 @@ services:
 
   job-service:
     <<: *service-defaults
-    build:
-      context: .
-      dockerfile: job-service/Dockerfile
-      cache_from:
-        - type=local,src=.docker-cache/job-service
-      cache_to:
-        - type=local,dest=.docker-cache/job-service,mode=max
+    image: ghcr.io/24bet10066/taurus-job-service:${IMAGE_TAG:-latest}
     cpus: 0.25
     mem_limit: 1280m
     environment:
@@ -93,13 +75,7 @@ services:
 
   parts-service:
     <<: *service-defaults
-    build:
-      context: .
-      dockerfile: parts-service/Dockerfile
-      cache_from:
-        - type=local,src=.docker-cache/parts-service
-      cache_to:
-        - type=local,dest=.docker-cache/parts-service,mode=max
+    image: ghcr.io/24bet10066/taurus-parts-service:${IMAGE_TAG:-latest}
     cpus: 0.25
     mem_limit: 1024m
     environment:
@@ -119,13 +95,7 @@ services:
 
   customer-service:
     <<: *service-defaults
-    build:
-      context: .
-      dockerfile: customer-service/Dockerfile
-      cache_from:
-        - type=local,src=.docker-cache/customer-service
-      cache_to:
-        - type=local,dest=.docker-cache/customer-service,mode=max
+    image: ghcr.io/24bet10066/taurus-customer-service:${IMAGE_TAG:-latest}
     cpus: 0.20
     mem_limit: 768m
     environment:
@@ -141,13 +111,7 @@ services:
 
   technician-service:
     <<: *service-defaults
-    build:
-      context: .
-      dockerfile: technician-service/Dockerfile
-      cache_from:
-        - type=local,src=.docker-cache/technician-service
-      cache_to:
-        - type=local,dest=.docker-cache/technician-service,mode=max
+    image: ghcr.io/24bet10066/taurus-technician-service:${IMAGE_TAG:-latest}
     cpus: 0.25
     mem_limit: 1024m
     environment:
@@ -164,13 +128,7 @@ services:
 
   notification-service:
     <<: *service-defaults
-    build:
-      context: .
-      dockerfile: notification-service/Dockerfile
-      cache_from:
-        - type=local,src=.docker-cache/notification-service
-      cache_to:
-        - type=local,dest=.docker-cache/notification-service,mode=max
+    image: ghcr.io/24bet10066/taurus-notification-service:${IMAGE_TAG:-latest}
     cpus: 0.15
     mem_limit: 768m
     environment:
@@ -189,13 +147,7 @@ services:
 
   payment-service:
     <<: *service-defaults
-    build:
-      context: .
-      dockerfile: payment-service/Dockerfile
-      cache_from:
-        - type=local,src=.docker-cache/payment-service
-      cache_to:
-        - type=local,dest=.docker-cache/payment-service,mode=max
+    image: ghcr.io/24bet10066/taurus-payment-service:${IMAGE_TAG:-latest}
     cpus: 0.15
     mem_limit: 768m
     environment:
@@ -215,13 +167,7 @@ services:
 
   analytics-service:
     <<: *service-defaults
-    build:
-      context: .
-      dockerfile: analytics-service/Dockerfile
-      cache_from:
-        - type=local,src=.docker-cache/analytics-service
-      cache_to:
-        - type=local,dest=.docker-cache/analytics-service,mode=max
+    image: ghcr.io/24bet10066/taurus-analytics-service:${IMAGE_TAG:-latest}
     cpus: 0.20
     mem_limit: 768m
     environment:

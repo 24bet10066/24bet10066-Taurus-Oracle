@@ -5,6 +5,13 @@ RAM. It runs the nine existing Spring Boot applications as containers and keeps
 PostgreSQL, Redis, and Kafka external. It does not create, initialize, reset, or
 delete application data.
 
+Images are published to the repository's GitHub Container Registry (GHCR)
+packages. Set each package's visibility to **Private** (recommended) or
+**Public** in the repository's **Packages** settings. For private packages,
+create a GitHub fine-grained token with read-only package access for the
+operator account and log in on the VM; never put that token in this repository
+or `.env`.
+
 ## 1. Prepare the VM
 
 Install Docker Engine and the Docker Compose v2 plugin on an Oracle Linux or
@@ -20,7 +27,19 @@ docker compose version
 the Oracle security list. The gateway is bound to `127.0.0.1` until a future
 HTTPS tunnel or reverse proxy is deliberately configured.
 
-## 2. Configure secrets and external services
+## 2. Authenticate to GHCR
+
+For private packages, authenticate Docker once on the VM using a GitHub account
+with read-only access to the repository packages:
+
+```bash
+echo "$GHCR_READ_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+```
+
+For public packages, this login is optional. Do not use a personal access token
+with write access or store `GHCR_READ_TOKEN` in shell history or the repository.
+
+## 3. Configure secrets and external services
 
 From the repository root:
 
@@ -44,28 +63,25 @@ The completed `.env` must contain:
 
 Never commit `.env` or paste secret values into issue trackers or logs.
 
-## 3. Validate and start
+## 4. Pull and start the published images
 
-Compose performs required-variable validation before creating containers:
+Compose performs required-variable validation before creating containers. It
+pulls the selected GHCR tag; it never compiles Maven projects or builds Docker
+images on the Oracle VM:
 
 ```bash
 docker compose -f compose.oracle.yaml config
-docker compose -f compose.oracle.yaml build --pull
-docker compose -f compose.oracle.yaml up -d
+IMAGE_TAG=latest docker compose -f compose.oracle.yaml pull
+IMAGE_TAG=latest docker compose -f compose.oracle.yaml up -d
 docker compose -f compose.oracle.yaml ps
 ```
-
-The build is native ARM64 on the A1 VM. Dockerfiles also use BuildKit Maven
-cache mounts. The Compose file keeps a per-service local build cache under
-`.docker-cache/`; this directory is disposable and must not be backed up as
-application data.
 
 Every container has `restart: unless-stopped`, an init process, a 60-second
 health-check grace period, and a health check against its local actuator
 endpoint. Application startup failures remain visible and cause container
 restarts; they are not converted into fake healthy responses.
 
-## 4. Resource budget
+## 5. Resource budget
 
 The Compose limits are intentionally bounded for a 12 GB VM:
 
@@ -88,7 +104,7 @@ Docker, filesystem cache, and short-lived build activity. Monitor actual usage
 before increasing any limit; nine unrestricted JVMs are not appropriate for
 this VM size.
 
-## 5. Operations
+## 6. Operations
 
 Check status and health:
 
@@ -116,25 +132,37 @@ docker compose -f compose.oracle.yaml restart
 Do not use `down -v`. There are no application database containers in this
 Compose file, and deleting volumes is not a recovery procedure.
 
-## 6. Updating the application
+## 7. Updating the application safely
+
+Every release has an immutable `sha-<commit>` tag and a moving `latest` tag.
+Prefer the immutable tag for a controlled upgrade. Pull the new images before
+restarting containers so the current release remains available for rollback:
 
 ```bash
-git fetch --prune origin
-git checkout main
-git pull --ff-only
+export IMAGE_TAG=sha-<commit>
 docker compose -f compose.oracle.yaml config
-docker compose -f compose.oracle.yaml build --pull
+docker compose -f compose.oracle.yaml pull
 docker compose -f compose.oracle.yaml up -d --remove-orphans
-docker image prune
+docker compose -f compose.oracle.yaml ps
 ```
 
-The update is rolling only at the container replacement level; plan a
-maintenance window for changes that require coordinated service behavior.
+To roll back, select the previously verified commit tag and repeat the same
+pull/up commands:
+
+```bash
+export IMAGE_TAG=sha-<previous-commit>
+docker compose -f compose.oracle.yaml pull
+docker compose -f compose.oracle.yaml up -d --remove-orphans
+```
+
+Do not use `latest` for a rollback because it is mutable. The update is rolling
+only at the container replacement level; plan a maintenance window for changes
+that require coordinated service behavior.
 Flyway is allowed to apply the application's versioned migrations, while JPA
 uses `ddl-auto=validate`. Do not run `scripts/init-databases.sql` on this VM or
 against an existing database.
 
-## 7. Backup and recovery
+## 8. Backup and recovery
 
 Back up the existing PostgreSQL, Redis, and Kafka data using the providers'
 native backup/export facilities. This repository does not replace those
@@ -160,7 +188,7 @@ procedure, verify the restored schema and data, then restart the affected
 service. Never use `down -v`, `CREATE DATABASE`, or a reset/init script as a
 recovery step.
 
-## 8. ARM64 and production boundaries
+## 9. ARM64 and production boundaries
 
 The nine Dockerfiles use multi-architecture Maven and Eclipse Temurin Java 21
 images. Maven dependencies are JVM artifacts; no application runtime dependency
